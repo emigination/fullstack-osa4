@@ -1,3 +1,7 @@
+var countBy = require('lodash/countBy')
+var transform = require('lodash/transform')
+
+
 const totalLikes = (blogs) => {
   return blogs.map(blog => blog.likes).reduce((sum, current) => sum + current)
 }
@@ -18,6 +22,20 @@ const favoriteBlog = (blogs) => {
   }
 }
 
+const mostBlogs = (blogs) => {
+  const authors = countBy(blogs, (blog) => blog.author)
+  const authorName = transform(
+    authors,
+    (mostBloggingAuthor, value, key) => {
+      mostBloggingAuthor.name = value > authors[mostBloggingAuthor.name] ? key : mostBloggingAuthor.name
+    },
+    { name: Object.keys(authors)[0] }).name
+  return {
+    author: authorName,
+    blogs: authors[authorName]
+  }
+}
+
 module.exports = {
-  totalLikes, favoriteBlog
+  totalLikes, favoriteBlog, mostBlogs
 }
