@@ -29,13 +29,35 @@ const mostBlogs = (blogs) => {
     (mostBloggingAuthor, value, key) => {
       mostBloggingAuthor.name = value > authors[mostBloggingAuthor.name] ? key : mostBloggingAuthor.name
     },
-    { name: Object.keys(authors)[0] }).name
+    { name: Object.keys(authors)[0] })
+    .name
   return {
     author: authorName,
     blogs: authors[authorName]
   }
 }
 
+const mostLikes = (blogs) => {
+  let authors = {}
+  for (const blog of blogs) {
+    if (!(blog.author in authors)) {
+      authors[blog.author] = 0
+    }
+    authors[blog.author] += blog.likes
+  }
+  const authorName = transform(
+    authors,
+    (mostLikedAuthor, value, key) => {
+      mostLikedAuthor.name = value > authors[mostLikedAuthor.name] ? key : mostLikedAuthor.name
+    },
+    { name: Object.keys(authors)[0] })
+    .name
+  return {
+    author: authorName,
+    likes: authors[authorName]
+  }
+}
+
 module.exports = {
-  totalLikes, favoriteBlog, mostBlogs
+  totalLikes, favoriteBlog, mostBlogs, mostLikes
 }
