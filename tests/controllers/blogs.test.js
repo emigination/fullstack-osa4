@@ -29,6 +29,14 @@ test('name of identifier field is id', async () => {
   expect(response.body[0].id).toBeDefined()
 })
 
+test('a new blog is added', async () => {
+  const blogObject = { title: "new", author: "new new", url: "www.new.fi", likes: 2 }
+
+  await api.post('/api/blogs').send(blogObject)
+
+  expect(await Blog.find({})).toHaveLength(3)
+})
+
 afterAll(async () => {
   await mongoose.connection.close()
 })
