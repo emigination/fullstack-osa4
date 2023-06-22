@@ -46,6 +46,18 @@ test('number of likes is set to 0 if not given', async () => {
   expect(blog.likes).toBe(0)
 })
 
+test('status code is 400 if no title given', async () => {
+  const blogObject = { author: "new author", url: "www.new.fi", likes: 1 }
+
+  await api.post('/api/blogs').send(blogObject).expect(400)
+})
+
+test('status code is 400 if no url given', async () => {
+  const blogObject = { author: "new author", title: "title", likes: 1 }
+
+  await api.post('/api/blogs').send(blogObject).expect(400)
+})
+
 afterAll(async () => {
   await mongoose.connection.close()
 })
