@@ -4,6 +4,14 @@ const app = require('../../app')
 const api = supertest(app)
 const Blog = require('../../models/blog')
 
+const nonexistentId = async () => {
+  const blog = new Blog({ title: 'delete', url: 'delete' })
+  await blog.save()
+  await blog.remove()
+
+  return blog._id
+}
+
 beforeEach(async () => {
   await Blog.deleteMany({})
   let blogObject = new Blog({title: 'test title', author: 'test author', url: 'www.test.fi', likes: 1})
@@ -78,11 +86,21 @@ describe('delete one', () => {
   })
 
   test('status code is 404 if id not found', async () => {
-    const blog = new Blog({ title: 'delete', url: 'delete' })
-    await blog.save()
-    await blog.remove()
+    await api.delete(`/api/blogs/${await nonexistentId()}`).expect(404)
+  })
+})
 
-    await api.delete(`/api/blogs/${blog._id.toString()}`).expect(404)
+describe('update one', () => {
+  test('number of likes is updated', async () => {
+    const blog = await Blog.findOne()
+
+    const response = await api.put(`/api/blogs/${blog.id}`).send({likes: 3})
+
+    expect(response.body.likes).toBe(3)
+  })
+
+  test('status code is 404 if id not found', async () => {
+    await api.put(`/api/blogs/${await nonexistentId()}`).send({likes: 1}).expect(404)
   })
 })
 
