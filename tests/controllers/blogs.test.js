@@ -62,6 +62,30 @@ describe('create new', () => {
   })
 })
 
+describe('delete one', () => {
+  test('a blog is deleted', async () => {
+    const blog = await Blog.findOne()
+
+    await api.delete(`/api/blogs/${blog.id}`)
+
+    expect(await Blog.find({})).toHaveLength(1)
+  })
+
+  test('status code is 204 if deleted', async () => {
+    const blog = await Blog.findOne()
+
+    await api.delete(`/api/blogs/${blog.id}`).expect(204)
+  })
+
+  test('status code is 404 if id not found', async () => {
+    const blog = new Blog({ title: 'delete', url: 'delete' })
+    await blog.save()
+    await blog.remove()
+
+    await api.delete(`/api/blogs/${blog._id.toString()}`).expect(404)
+  })
+})
+
 afterAll(async () => {
   await mongoose.connection.close()
 })
