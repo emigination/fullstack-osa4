@@ -6,56 +6,60 @@ const Blog = require('../../models/blog')
 
 beforeEach(async () => {
   await Blog.deleteMany({})
-  let blogObject = new Blog({title: "test title", author: "test author", url: "www.test.fi", likes: 1})
+  let blogObject = new Blog({title: 'test title', author: 'test author', url: 'www.test.fi', likes: 1})
   await blogObject.save()
-  blogObject = new Blog({title: "atitle", author: "anauthor", url: "www.test.net", likes: 0})
+  blogObject = new Blog({title: 'atitle', author: 'anauthor', url: 'www.test.net', likes: 0})
   await blogObject.save()
 })
 
-test('all blogs are returned', async () => {
-  const response = await api.get('/api/blogs')
+describe('fetch all', () => {
+  test('all blogs are returned', async () => {
+    const response = await api.get('/api/blogs')
 
-  expect(response.body).toHaveLength(2)
+    expect(response.body).toHaveLength(2)
+  })
+
+  test('blogs are returned as json', async () => {
+    await api.get('/api/blogs')
+      .expect(200).expect('Content-Type', /application\/json/)
+  })
+
+  test('name of identifier field is id', async () => {
+    const response = await api.get('/api/blogs')
+
+    expect(response.body[0].id).toBeDefined()
+  })
 })
 
-test('blogs are returned as json', async () => {
-  await api.get('/api/blogs')
-    .expect(200).expect('Content-Type', /application\/json/)
-})
+describe('create new', () => {
+  test('a new blog is added', async () => {
+    const blogObject = { title: 'new', author: 'new new', url: 'www.new.fi', likes: 2 }
 
-test('name of identifier field is id', async () => {
-  const response = await api.get('/api/blogs')
+    await api.post('/api/blogs').send(blogObject)
 
-  expect(response.body[0].id).toBeDefined()
-})
+    expect(await Blog.find({})).toHaveLength(3)
+  })
 
-test('a new blog is added', async () => {
-  const blogObject = { title: "new", author: "new new", url: "www.new.fi", likes: 2 }
+  test('number of likes is set to 0 if not given', async () => {
+    const blogObject = { title: 'new', author: 'new new', url: 'www.new.fi' }
 
-  await api.post('/api/blogs').send(blogObject)
+    await api.post('/api/blogs').send(blogObject)
 
-  expect(await Blog.find({})).toHaveLength(3)
-})
+    const blog = await Blog.findOne({title: 'new'})
+    expect(blog.likes).toBe(0)
+  })
 
-test('number of likes is set to 0 if not given', async () => {
-  const blogObject = { title: "new", author: "new new", url: "www.new.fi" }
+  test('status code is 400 if no title given', async () => {
+    const blogObject = { author: 'new author', url: 'www.new.fi', likes: 1 }
 
-  await api.post('/api/blogs').send(blogObject)
+    await api.post('/api/blogs').send(blogObject).expect(400)
+  })
 
-  const blog = await Blog.findOne({title: "new"})
-  expect(blog.likes).toBe(0)
-})
+  test('status code is 400 if no url given', async () => {
+    const blogObject = { author: 'new author', title: 'title', likes: 1 }
 
-test('status code is 400 if no title given', async () => {
-  const blogObject = { author: "new author", url: "www.new.fi", likes: 1 }
-
-  await api.post('/api/blogs').send(blogObject).expect(400)
-})
-
-test('status code is 400 if no url given', async () => {
-  const blogObject = { author: "new author", title: "title", likes: 1 }
-
-  await api.post('/api/blogs').send(blogObject).expect(400)
+    await api.post('/api/blogs').send(blogObject).expect(400)
+  })
 })
 
 afterAll(async () => {
