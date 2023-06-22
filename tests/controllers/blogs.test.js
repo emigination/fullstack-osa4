@@ -37,6 +37,15 @@ test('a new blog is added', async () => {
   expect(await Blog.find({})).toHaveLength(3)
 })
 
+test('number of likes is set to 0 if not given', async () => {
+  const blogObject = { title: "new", author: "new new", url: "www.new.fi" }
+
+  await api.post('/api/blogs').send(blogObject)
+
+  const blog = await Blog.findOne({title: "new"})
+  expect(blog.likes).toBe(0)
+})
+
 afterAll(async () => {
   await mongoose.connection.close()
 })
