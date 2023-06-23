@@ -3,6 +3,7 @@ const supertest = require('supertest')
 const app = require('../../app')
 const api = supertest(app)
 const Blog = require('../../models/blog')
+const User = require('../../models/user')
 
 const nonexistentId = async () => {
   const blog = new Blog({ title: 'delete', url: 'delete' })
@@ -11,6 +12,13 @@ const nonexistentId = async () => {
 
   return blog._id
 }
+
+beforeAll(async () => {
+  if (!(await User.findOne())) {
+    user = new User({ username: 'testuser', name: 'testname', password: 'testpassw' })
+    await user.save()
+  }
+})
 
 beforeEach(async () => {
   await Blog.deleteMany({})
@@ -105,5 +113,7 @@ describe('update one', () => {
 })
 
 afterAll(async () => {
+  await Blog.deleteMany()
+  await User.findOneAndDelete({username: 'testuser'})
   await mongoose.connection.close()
 })
