@@ -3,32 +3,31 @@ const bcrypt = require('bcrypt')
 const User = require('../models/user')
 
 usersRouter.post('/', async(request, response) => {
-  const user_params = request.body
+  const userParams = request.body
   errors = []
-  if (!user_params.username) {
+  if (!userParams.username) {
     errors.push('Username is required')
-  } else if (user_params.username.length < 3) {
+  } else if (userParams.username.length < 3) {
     errors.push('Username must be at least 3 characters long')
   }
-  if (!user_params.password) {
+  if (!userParams.password) {
     errors.push('Password is required')
-  } else if (user_params.password.length < 3) {
+  } else if (userParams.password.length < 3) {
     errors.push('Password must be at least 3 characters long')
   }
 
   if (errors.length > 0) {
     return response.status(400).json({error: errors.join(', ')})
   }
-
-  user_params.password = await bcrypt.hash(user_params.password, 10)
-  const user = new User(user_params)
+  userParams.password = await bcrypt.hash(userParams.password, 10)
+  const user = new User(userParams)
   const savedUser = await user.save()
 
   response.status(201).json(savedUser)
 })
 
 usersRouter.get('/', async(request, response) => {
-  const users = await User.find({})
+  const users = await User.find({}).populate('blogs', { url: 1, title: 1, author: 1 })
   response.json(users)
 })
 
