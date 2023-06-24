@@ -92,6 +92,17 @@ describe('create new', () => {
     blogs = await Blog.find({})
     expect(blogs).toHaveLength(initialNumberOfBlogs)
   })
+
+  test('blog is not created if token not given', async () => {
+    let blogs = await Blog.find({})
+    const initialNumberOfBlogs = blogs.length
+    const blogObject = { title: 'new', author: 'new new', url: 'www.new.fi', likes: 1 }
+
+    await api.post('/api/blogs').send(blogObject).expect(401)
+
+    blogs = await Blog.find({})
+    expect(blogs).toHaveLength(initialNumberOfBlogs)
+  })
 })
 
 describe('delete one', () => {
