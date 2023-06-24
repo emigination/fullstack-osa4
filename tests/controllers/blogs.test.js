@@ -7,29 +7,33 @@ const Blog = require('../../models/blog')
 const User = require('../../models/user')
 
 const nonexistentId = async () => {
-  const blog = new Blog({ title: 'delete', url: 'delete' })
-  await blog.save()
-  await blog.deleteOne()
+  const deletedBlog = new Blog({ title: 'delete', url: 'delete' })
+  await deletedBlog.save()
+  await deletedBlog.deleteOne()
 
-  return blog._id
+  return deletedBlog._id
 }
 
+let token = null
+let user = null
 beforeAll(async () => {
   if (!(await User.findOne())) {
     user = new User({ username: 'testuser', name: 'testname', password: 'testpassw' })
     await user.save()
   }
-})
-
-beforeEach(async () => {
-  await Blog.deleteMany({})
-  let blogObject = new Blog({title: 'test title', author: 'test author', url: 'www.test.fi', likes: 1})
-  await blogObject.save()
-  blogObject = new Blog({title: 'atitle', author: 'anauthor', url: 'www.test.net', likes: 0})
-  await blogObject.save()
+  user = await User.findOne()
+  token = await jwt.sign({username: user.username, id: user._id,}, process.env.SECRET)
 })
 
 describe('fetch all', () => {
+  beforeEach(async () => {
+    await Blog.deleteMany({})
+    let blogObject = new Blog({title: 'test title', author: 'test author', url: 'www.test.fi', likes: 1})
+    await blogObject.save()
+    blogObject = new Blog({title: 'atitle', author: 'anauthor', url: 'www.test.net', likes: 0})
+    await blogObject.save()
+  })
+
   test('all blogs are returned', async () => {
     const response = await api.get('/api/blogs')
 
@@ -49,29 +53,25 @@ describe('fetch all', () => {
 })
 
 describe('create new', () => {
-  let token = null
-  let user = null
-  beforeAll(async () => {
-    user = await User.findOne()
-    token = await jwt.sign({username: user.username, id: user._id,}, process.env.SECRET)
-  })
-
   test('a new blog is added', async () => {
+    let blogs = await Blog.find({})
+    const initialNumberOfBlogs = blogs.length
     const blogObject = { title: 'new', author: 'new new', url: 'www.new.fi', likes: 2 }
 
     await api.post('/api/blogs').set('Authorization', `Bearer ${token}`).send(blogObject).expect(201)
 
-    expect(await Blog.find({})).toHaveLength(3)
+    blogs = await Blog.find({})
+    expect(blogs).toHaveLength(initialNumberOfBlogs + 1)
     expect((await Blog.findOne({title: 'new'})).user.toString()).toBe(user.id)
     expect((await User.findOne({username: 'testuser'})).blogs.length).toBe(1)
   })
 
   test('number of likes is set to 0 if not given', async () => {
-    const blogObject = { title: 'new', author: 'new new', url: 'www.new.fi' }
+    const blogObject = { title: 'anotherblog', author: 'new new', url: 'www.new.fi' }
 
     await api.post('/api/blogs').set('Authorization', `Bearer ${token}`).send(blogObject)
 
-    const blog = await Blog.findOne({title: 'new'})
+    const blog = await Blog.findOne({title: 'anotherblog'})
     expect(blog.likes).toBe(0)
   })
 
@@ -88,31 +88,54 @@ describe('create new', () => {
   })
 
   test('blog is not created if token invalid', async () => {
+    let blogs = await Blog.find({})
+    const initialNumberOfBlogs = blogs.length
     const blogObject = { title: 'new', author: 'new new', url: 'www.new.fi', likes: 1 }
 
     await api.post('/api/blogs').set('Authorization', `Bearer 1234`).send(blogObject)
 
-    expect(await Blog.find({})).toHaveLength(2)
+    blogs = await Blog.find({})
+    expect(blogs).toHaveLength(initialNumberOfBlogs)
   })
 })
 
 describe('delete one', () => {
-  test('blog is deleted', async () => {
-    const blog = await Blog.findOne()
-
-    await api.delete(`/api/blogs/${blog.id}`)
-
-    expect(await Blog.find({})).toHaveLength(1)
+  let blog = null
+  beforeEach(async () => {
+    await Blog.deleteMany()
+    blog = new Blog({ title: 'delete', url: 'delete', user: user.id })
+    await blog.save()
   })
 
-  test('status code is 204 if deleted', async () => {
-    const blog = await Blog.findOne()
+  test('blog is deleted', async () => {
+    let blogs = await Blog.find({})
+    const initialNumberOfBlogs = blogs.length
+    await api.delete(`/api/blogs/${blog.id}`).set('Authorization', `Bearer ${token}`).expect(204)
 
-    await api.delete(`/api/blogs/${blog.id}`).expect(204)
+    blogs = await Blog.find({})
+    expect(blogs).toHaveLength(initialNumberOfBlogs - 1)
   })
 
   test('status code is 404 if id not found', async () => {
-    await api.delete(`/api/blogs/${await nonexistentId()}`).expect(404)
+    let blogs = await Blog.find({})
+    const initialNumberOfBlogs = blogs.length
+    await api.delete(`/api/blogs/${await nonexistentId()}`).set('Authorization', `Bearer ${token}`).expect(404)
+
+    blogs = await Blog.find({})
+    expect(blogs).toHaveLength(initialNumberOfBlogs)
+  })
+
+  test('blog is not deleted if user not creator', async () => {
+    let blogs = await Blog.find({})
+    const initialNumberOfBlogs = blogs.length
+    const newUser = new User({ username: 'newuser', name: 'newname', password: 'newpassw' })
+    await newUser.save()
+    const newToken = await jwt.sign({username: newUser.username, id: newUser._id,}, process.env.SECRET)
+
+    await api.delete(`/api/blogs/${blog.id}`).set('Authorization', `Bearer ${newToken}`).expect(404)
+
+    blogs = await Blog.find({})
+    expect(blogs).toHaveLength(initialNumberOfBlogs)
   })
 })
 
@@ -132,6 +155,6 @@ describe('update one', () => {
 
 afterAll(async () => {
   await Blog.deleteMany()
-  await User.findOneAndDelete({username: 'testuser'})
+  await User.deleteMany({username: ['testuser', 'newuser']})
   await mongoose.connection.close()
 })
