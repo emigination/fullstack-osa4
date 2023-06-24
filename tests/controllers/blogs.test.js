@@ -34,15 +34,10 @@ describe('fetch all', () => {
     await blogObject.save()
   })
 
-  test('all blogs are returned', async () => {
-    const response = await api.get('/api/blogs')
+  test('all blogs are returned as json', async () => {
+    const response = await api.get('/api/blogs').expect(200).expect('Content-Type', /application\/json/)
 
     expect(response.body).toHaveLength(2)
-  })
-
-  test('blogs are returned as json', async () => {
-    await api.get('/api/blogs')
-      .expect(200).expect('Content-Type', /application\/json/)
   })
 
   test('name of identifier field is id', async () => {

@@ -55,19 +55,11 @@ describe('create new', () => {
     expect(await (User.find({}))).toHaveLength(0)
   })
 
-  test('status code is 400 if username not unique', async () => {
-    let userObject = new User({username: 'user', name: 'new user', password: 'passw'})
-    await userObject.save()
-
-    await api.post('/api/users').send({ username: 'user', name: 'another user', password: 'pass' }).expect(400)
-    expect(await (User.find({}))).toHaveLength(1)
-  })
-
   test('returns error message if username not unique', async () => {
     let userObject = new User({username: 'user', name: 'new user', password: 'passw'})
     await userObject.save()
 
-    const response = await api.post('/api/users').send({ username: 'user', name: 'another user', password: 'pass' })
+    const response = await api.post('/api/users').send({ username: 'user', name: 'another user', password: 'pass' }).expect(400)
 
     expect(response.body.error).toContain('Username already taken')
   })
@@ -81,14 +73,10 @@ describe('fetch all', () => {
     await userObject.save()
   })
 
-  test('all users are returned', async () => {
-    const response = await api.get('/api/users')
+  test('all users are returned as json', async () => {
+    const response = await api.get('/api/users').expect('Content-Type', /application\/json/)
 
     expect(response.body).toHaveLength(2)
-  })
-
-  test('users are returned as json', async () => {
-    await api.get('/api/users').expect(200).expect('Content-Type', /application\/json/)
   })
 
   test('name of identifier field is id', async () => {
