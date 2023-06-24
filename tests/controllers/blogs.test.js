@@ -141,15 +141,15 @@ describe('delete one', () => {
 
 describe('update one', () => {
   test('number of likes is updated', async () => {
-    const blog = await Blog.findOne()
+    const blog = await Blog.findOne() || await Blog.create({title: 'test title', author: 'test author', url: 'www.test.fi'})
 
-    const response = await api.put(`/api/blogs/${blog.id}`).send({likes: 3})
+    const response = await api.put(`/api/blogs/${blog.id}`).set('Authorization', `Bearer ${token}`).send({likes: 3})
 
     expect(response.body.likes).toBe(3)
   })
 
   test('status code is 404 if id not found', async () => {
-    await api.put(`/api/blogs/${await nonexistentId()}`).send({likes: 1}).expect(404)
+    await api.put(`/api/blogs/${await nonexistentId()}`).set('Authorization', `Bearer ${token}`).send({likes: 1}).expect(404)
   })
 })
 
